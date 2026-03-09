@@ -1,245 +1,209 @@
 // ============================================
-// SHOW CLASS
+// CORE DATA
 // ============================================
-const DEFAULT_COLOR = '#a855f7';
+const myLibrary = [];
 
-class Show {
-    constructor(title, seasons, rating, image, status, color, description) {
-        this.id = crypto.randomUUID();
-        this.title = title;
-        this.seasons = seasons;
-        this.rating = rating;
-        this.image = image;
-        this.status = status || 'not watched yet';
-        this.color = color || DEFAULT_COLOR;
-        this.description = description || '';
+function Book(title, seasons, rating, read = false) {
+    this.id = crypto.randomUUID();
+    this.title = title;
+    this.seasons = seasons;
+    this.rating = rating;
+    this.read = read;
+}
+
+function addBookToLibrary({ title, seasons, rating, read, advancedData }) {
+    const book = new Book(title, seasons, rating, read);
+
+    if (typeof window.applyAdvancedDataToBook === 'function') {
+        window.applyAdvancedDataToBook(book, advancedData);
     }
 
-    formatStatus() {
-        const labels = {
-            'not watched yet': 'Not watched yet',
-            watching: 'Watching',
-            watched: 'Watched'
-        };
-        return labels[this.status] || labels['not watched yet'];
-    }
+    myLibrary.push(book);
+}
 
-    nextStatus() {
-        if (this.status === 'not watched yet') return 'watching';
-        if (this.status === 'watching') return 'watched';
-        return 'not watched yet';
-    }
+function removeBookFromLibrary(id) {
+    const index = myLibrary.findIndex((book) => book.id === id);
+    if (index === -1) return;
 
-    cycleStatus() {
-        this.status = this.nextStatus();
+    const [removedBook] = myLibrary.splice(index, 1);
+
+    if (typeof window.cleanupAdvancedBookData === 'function') {
+        window.cleanupAdvancedBookData(removedBook);
+    }
+}
+
+function toggleBookReadStatus(id) {
+    const book = myLibrary.find((item) => item.id === id);
+    if (!book) return;
+
+    if (typeof window.toggleAdvancedReadStatus === 'function') {
+        const handled = window.toggleAdvancedReadStatus(book);
+        if (!handled) {
+            book.read = !book.read;
+        }
+    } else {
+        book.read = !book.read;
     }
 }
 
 // ============================================
-// WATCHLIST CLASS
+// CORE UI
 // ============================================
-class Watchlist {
-    constructor() {
-        this.shows = [];
-        this.editingShowId = null;
-    }
+const form = document.getElementById('showForm');
+const showsContainer = document.getElementById('shows');
+const addBtn = document.querySelector('.addBtn');
+const cancelBtn = document.querySelector('.cancelBtn');
+const modalOverlay = document.getElementById('modalOverlay');
+const modalContainer = document.getElementById('modalContainer');
 
-    addShow(showData) {
-        if (this.editingShowId) {
-            this.updateShow(this.editingShowId, showData);
-        } else {
-            this.createShow(showData);
-        }
-        this.editingShowId = null;
-    }
+const formFields = {
+    title: document.getElementById('showName'),
+    seasons: document.getElementById('showSeasons'),
+    rating: document.getElementById('showRating'),
+    status: document.getElementById('showStatus'),
+    color: document.getElementById('showColor'),
+    description: document.getElementById('showDescription'),
+    image: document.getElementById('showImg')
+};
 
-    createShow({ title, seasons, rating, imageFile, status, color, description }) {
-        const imageUrl = imageFile ? URL.createObjectURL(imageFile) : null;
-        const show = new Show(title, seasons, rating, imageUrl, status, color, description);
-        this.shows.push(show);
-    }
-
-    updateShow(id, { title, seasons, rating, imageFile, status, color, description }) {
-        const show = this.shows.find(s => s.id === id);
-        if (!show) return;
-
-        show.title = title;
-        show.seasons = seasons;
-        show.rating = rating;
-        show.status = status || show.status;
-        show.color = color || show.color;
-        show.description = description || show.description;
-
-        if (imageFile) {
-            if (show.image?.startsWith("blob:")) {
-                URL.revokeObjectURL(show.image);
-            }
-            show.image = URL.createObjectURL(imageFile);
-        }
-    }
-
-    deleteShow(id) {
-        const show = this.shows.find(s => s.id === id);
-        if (show?.image?.startsWith("blob:")) {
-            URL.revokeObjectURL(show.image);
-        }
-        this.shows = this.shows.filter(s => s.id !== id);
-    }
-
-    getShowById(id) {
-        return this.shows.find(s => s.id === id);
-    }
-
-    toggleShowStatus(id) {
-        const show = this.getShowById(id);
-        if (show) {
-            show.cycleStatus();
-        }
-    }
+function toggleModal(show) {
+    modalOverlay.style.display = show ? 'block' : 'none';
+    modalContainer.style.display = show ? 'block' : 'none';
 }
 
-// ============================================
-// UI CLASS
-// ============================================
-class UI {
-    constructor(watchlist) {
-        this.watchlist = watchlist;
-        this.modalOverlay = document.getElementById("modalOverlay");
-        this.modalContainer = document.getElementById("modalContainer");
-        this.form = document.getElementById("showForm");
-        this.showsContainer = document.getElementById("shows");
-        this.addBtn = document.querySelector(".addBtn");
-        this.cancelBtn = document.querySelector(".cancelBtn");
-        this.formFields = {
-            title: document.getElementById("showName"),
-            seasons: document.getElementById("showSeasons"),
-            rating: document.getElementById("showRating"),
-            image: document.getElementById("showImg"),
-            status: document.getElementById("showStatus"),
-            color: document.getElementById("showColor"),
-            description: document.getElementById("showDescription")
-        };
-        this.setupEventListeners();
+function getReadLabel(book) {
+    if (typeof window.getAdvancedReadLabel === 'function') {
+        return window.getAdvancedReadLabel(book);
     }
+    return book.read ? 'Read' : 'Not read';
+}
 
-    setupEventListeners() {
-        this.form.addEventListener("submit", (e) => this.handleFormSubmit(e));
-        this.addBtn.addEventListener("click", () => this.openModal());
-        this.cancelBtn?.addEventListener("click", () => this.closeModal());
-    }
+function getFormData() {
+    const advancedData =
+        typeof window.getAdvancedFormData === 'function'
+            ? window.getAdvancedFormData(formFields)
+            : {};
 
-    getFormValues() {
-        return {
-            title: this.formFields.title.value,
-            seasons: this.formFields.seasons.value,
-            rating: this.formFields.rating.value,
-            imageFile: this.formFields.image.files[0],
-            status: this.formFields.status.value,
-            color: this.formFields.color.value || DEFAULT_COLOR,
-            description: this.formFields.description.value
-        };
-    }
+    return {
+        title: formFields.title.value.trim(),
+        seasons: formFields.seasons.value,
+        rating: formFields.rating.value,
+        read: formFields.status.value === 'watched',
+        advancedData
+    };
+}
 
-    handleFormSubmit(e) {
-        e.preventDefault();
-        const formValues = this.getFormValues();
-        this.watchlist.addShow(formValues);
-        this.resetForm();
-        this.closeModal();
-        this.render();
-    }
+function renderLibrary() {
+    showsContainer.innerHTML = '';
 
-    openModal() {
-        this.resetForm();
-        this.toggleModal(true);
-    }
+    myLibrary.forEach((book) => {
+        const card = document.createElement('div');
 
-    closeModal() {
-        this.toggleModal(false);
-    }
-
-    toggleModal(show) {
-        this.modalOverlay.style.display = show ? "block" : "none";
-        this.modalContainer.style.display = show ? "block" : "none";
-    }
-
-    resetForm() {
-        this.watchlist.editingShowId = null;
-        this.form.reset();
-    }
-
-    openEditModal(id) {
-        const show = this.watchlist.getShowById(id);
-        if (!show) return;
-
-        this.watchlist.editingShowId = id;
-
-        this.formFields.title.value = show.title;
-        this.formFields.seasons.value = show.seasons;
-        this.formFields.rating.value = show.rating;
-        this.formFields.status.value = show.status || 'not watched yet';
-        this.formFields.color.value = show.color || DEFAULT_COLOR;
-        this.formFields.description.value = show.description || '';
-
-        this.toggleModal(true);
-    }
-
-    render() {
-        this.showsContainer.innerHTML = "";
-
-        this.watchlist.shows.forEach(show => {
-            const card = document.createElement("div");
-            const imageUrl = show.image || 'https://via.placeholder.com/200';
-
-            card.innerHTML = `
-                <div class="show" data-show-id="${show.id}" style="--bg-image: url('${imageUrl}')">
-                    <div class="show-info">
-                        <h2 class="show-title">${show.title}</h2>
-                        <p class="show-description">${show.description || ''}</p>
-                        <p class="show-seasons">Seasons: ${show.seasons}</p>
-                        <p class="show-rating">Rating: ${show.rating}</p>
-                    </div>
-                    <div class="show-actions">
-                        <button class="toggleWatchedBtn" onclick="ui.toggleStatus('${show.id}')" aria-label="Cycle status">
-                            ${show.formatStatus()}
-                        </button>
-                        <button class="editBtn" onclick="ui.editShow('${show.id}')">Edit</button>
-                        <button class="deleteBtn" onclick="ui.deleteShow('${show.id}')">Delete</button>
-                    </div>
+        card.innerHTML = `
+            <div class="show" data-book-id="${book.id}">
+                <div class="show-info">
+                    <h2 class="show-title">${book.title}</h2>
+                    <p class="show-seasons">Seasons: ${book.seasons}</p>
+                    <p class="show-rating">Rating: ${book.rating}</p>
+                    ${typeof window.renderAdvancedInfo === 'function' ? window.renderAdvancedInfo(book) : ''}
                 </div>
-            `;
-            this.showsContainer.appendChild(card);
+                <div class="show-actions">
+                    <button class="toggleWatchedBtn" data-action="toggle" data-book-id="${book.id}">
+                        ${getReadLabel(book)}
+                    </button>
+                    <button class="deleteBtn" data-action="delete" data-book-id="${book.id}">Delete</button>
+                </div>
+            </div>
+        `;
 
-            if (typeof window.applyShowVisualEnhancements === 'function') {
-                window.applyShowVisualEnhancements(card, show);
-            }
-        });
-    }
+        showsContainer.appendChild(card);
 
-    toggleStatus(id) {
-        this.watchlist.toggleShowStatus(id);
-        this.render();
-    }
-
-    editShow(id) {
-        this.openEditModal(id);
-    }
-
-    deleteShow(id) {
-        this.watchlist.deleteShow(id);
-        this.render();
-    }
+        if (typeof window.applyAdvancedCardStyles === 'function') {
+            window.applyAdvancedCardStyles(card, book);
+        }
+    });
 }
 
 // ============================================
-// INITIALIZATION
+// CORE EVENTS
 // ============================================
-const watchlist = new Watchlist();
-const ui = new UI(watchlist);
+form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    addBookToLibrary(getFormData());
+    form.reset();
+    toggleModal(false);
+    renderLibrary();
+});
 
-const testShow = new Show("Breaking Bad", 5, 9.5, "./imgs/BB.jpg", 'watched', '#10b981', 'A chemistry teacher turned meth kingpin battles rivals and himself.');
-const testShow2 = new Show("Better Call Saul", 6, 9.1, "./imgs/BCS.jpg", 'watching', '#f97316', 'The origin story of criminal lawyer Saul Goodman.');
-const testShow3 = new Show("Brooklyn Nine-Nine", 8, 8.4, "./imgs/B99.jpg", 'not watched yet', '#22d3ee', 'A talented detective and his diverse crew solve crimes with humor.');
-watchlist.shows.push(testShow, testShow2, testShow3);
+addBtn.addEventListener('click', () => {
+    form.reset();
+    toggleModal(true);
+});
 
-ui.render();
+cancelBtn?.addEventListener('click', () => {
+    form.reset();
+    toggleModal(false);
+});
+
+showsContainer.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const action = target.dataset.action;
+    const id = target.dataset.bookId;
+    if (!action || !id) return;
+
+    if (action === 'toggle') {
+        toggleBookReadStatus(id);
+    }
+
+    if (action === 'delete') {
+        removeBookFromLibrary(id);
+    }
+
+    renderLibrary();
+});
+
+// ============================================
+// CORE SEED DATA
+// ============================================
+addBookToLibrary({
+    title: 'Breaking Bad',
+    seasons: 5,
+    rating: 9.5,
+    read: true,
+    advancedData: {
+        status: 'watched',
+        color: '#10b981',
+        description: 'A chemistry teacher turned meth kingpin battles rivals and himself.',
+        image: './imgs/BB.jpg'
+    }
+});
+
+addBookToLibrary({
+    title: 'Better Call Saul',
+    seasons: 6,
+    rating: 9.1,
+    read: false,
+    advancedData: {
+        status: 'watching',
+        color: '#f97316',
+        description: 'The origin story of criminal lawyer Saul Goodman.',
+        image: './imgs/BCS.jpg'
+    }
+});
+
+addBookToLibrary({
+    title: 'Brooklyn Nine-Nine',
+    seasons: 8,
+    rating: 8.4,
+    read: false,
+    advancedData: {
+        status: 'not watched yet',
+        color: '#22d3ee',
+        description: 'A talented detective and his diverse crew solve crimes with humor.',
+        image: './imgs/B99.jpg'
+    }
+});
+
+renderLibrary();
