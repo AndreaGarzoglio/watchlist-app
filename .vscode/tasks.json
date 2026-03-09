@@ -1,0 +1,23 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "finish cherry-pick on main",
+			"type": "shell",
+			"command": "cd /home/garuzo/Desktop/The-Odin-Project/JAVASCRIPT/Advanced\\ JS/Library && git add script.js script-enhancements.js && GIT_EDITOR=true git cherry-pick --continue && git push",
+			"isBackground": false
+		},
+		{
+			"label": "finish cherry-pick on main",
+			"type": "shell",
+			"command": "cd /home/garuzo/Desktop/The-Odin-Project/JAVASCRIPT/Advanced\\ JS/Library && git add script.js script-enhancements.js index.html && if [ -f .git/CHERRY_PICK_HEAD ]; then GIT_EDITOR=true git cherry-pick --continue; else git commit -m \"Split core assignment logic from advanced enhancements\"; fi && git push origin main",
+			"isBackground": false
+		},
+		{
+			"label": "checkout-refactor-branch",
+			"type": "shell",
+			"command": "git checkout refactor/convert-to-classes && git rev-parse --abbrev-ref HEAD",
+			"isBackground": false
+		}
+	]
+}

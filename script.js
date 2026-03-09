@@ -1,177 +1,205 @@
 // ============================================
-// CORE DATA
+// SHOW CLASS
 // ============================================
-const myLibrary = [];
-
-function Book(title, seasons, rating, read = false) {
-    this.id = crypto.randomUUID();
-    this.title = title;
-    this.seasons = seasons;
-    this.rating = rating;
-    this.read = read;
-}
-
-function addBookToLibrary({ title, seasons, rating, read, advancedData }) {
-    const book = new Book(title, seasons, rating, read);
-
-    if (typeof window.applyAdvancedDataToBook === 'function') {
-        window.applyAdvancedDataToBook(book, advancedData);
+class Show {
+    constructor(title, seasons, rating, watched = false) {
+        this.id = crypto.randomUUID();
+        this.title = title;
+        this.seasons = seasons;
+        this.rating = rating;
+        this.watched = watched;
     }
 
-    myLibrary.push(book);
-}
-
-function removeBookFromLibrary(id) {
-    const index = myLibrary.findIndex((book) => book.id === id);
-    if (index === -1) return;
-
-    const [removedBook] = myLibrary.splice(index, 1);
-
-    if (typeof window.cleanupAdvancedBookData === 'function') {
-        window.cleanupAdvancedBookData(removedBook);
+    toggleWatchedStatus() {
+        this.watched = !this.watched;
     }
 }
 
-function toggleBookReadStatus(id) {
-    const book = myLibrary.find((item) => item.id === id);
-    if (!book) return;
+// ============================================
+// WATCHLIST CLASS
+// ============================================
+class Watchlist {
+    constructor() {
+        this.shows = [];
+    }
 
-    if (typeof window.toggleAdvancedReadStatus === 'function') {
-        const handled = window.toggleAdvancedReadStatus(book);
-        if (!handled) {
-            book.read = !book.read;
+    addShow({ title, seasons, rating, watched, advancedData }) {
+        const show = new Show(title, seasons, rating, watched);
+
+        if (typeof window.applyAdvancedDataToShow === 'function') {
+            window.applyAdvancedDataToShow(show, advancedData);
+        } else if (typeof window.applyAdvancedDataToBook === 'function') {
+            window.applyAdvancedDataToBook(show, advancedData);
         }
-    } else {
-        book.read = !book.read;
+
+        this.shows.push(show);
     }
-}
 
-// ============================================
-// CORE UI
-// ============================================
-const form = document.getElementById('showForm');
-const showsContainer = document.getElementById('shows');
-const addBtn = document.querySelector('.addBtn');
-const cancelBtn = document.querySelector('.cancelBtn');
-const modalOverlay = document.getElementById('modalOverlay');
-const modalContainer = document.getElementById('modalContainer');
+    removeShow(id) {
+        const index = this.shows.findIndex((show) => show.id === id);
+        if (index === -1) return;
 
-const formFields = {
-    title: document.getElementById('showName'),
-    seasons: document.getElementById('showSeasons'),
-    rating: document.getElementById('showRating'),
-    status: document.getElementById('showStatus'),
-    color: document.getElementById('showColor'),
-    description: document.getElementById('showDescription'),
-    image: document.getElementById('showImg')
-};
+        const [removedShow] = this.shows.splice(index, 1);
 
-function toggleModal(show) {
-    modalOverlay.style.display = show ? 'block' : 'none';
-    modalContainer.style.display = show ? 'block' : 'none';
-}
-
-function getReadLabel(book) {
-    if (typeof window.getAdvancedReadLabel === 'function') {
-        return window.getAdvancedReadLabel(book);
-    }
-    return book.read ? 'Read' : 'Not read';
-}
-
-function getFormData() {
-    const advancedData =
-        typeof window.getAdvancedFormData === 'function'
-            ? window.getAdvancedFormData(formFields)
-            : {};
-
-    return {
-        title: formFields.title.value.trim(),
-        seasons: formFields.seasons.value,
-        rating: formFields.rating.value,
-        read: formFields.status.value === 'watched',
-        advancedData
-    };
-}
-
-function renderLibrary() {
-    showsContainer.innerHTML = '';
-
-    myLibrary.forEach((book) => {
-        const card = document.createElement('div');
-
-        card.innerHTML = `
-            <div class="show" data-book-id="${book.id}">
-                <div class="show-info">
-                    <h2 class="show-title">${book.title}</h2>
-                    <p class="show-seasons">Seasons: ${book.seasons}</p>
-                    <p class="show-rating">Rating: ${book.rating}</p>
-                    ${typeof window.renderAdvancedInfo === 'function' ? window.renderAdvancedInfo(book) : ''}
-                </div>
-                <div class="show-actions">
-                    <button class="toggleWatchedBtn" data-action="toggle" data-book-id="${book.id}">
-                        ${getReadLabel(book)}
-                    </button>
-                    <button class="deleteBtn" data-action="delete" data-book-id="${book.id}">Delete</button>
-                </div>
-            </div>
-        `;
-
-        showsContainer.appendChild(card);
-
-        if (typeof window.applyAdvancedCardStyles === 'function') {
-            window.applyAdvancedCardStyles(card, book);
+        if (typeof window.cleanupAdvancedShowData === 'function') {
+            window.cleanupAdvancedShowData(removedShow);
+        } else if (typeof window.cleanupAdvancedBookData === 'function') {
+            window.cleanupAdvancedBookData(removedShow);
         }
-    });
+    }
+
+    toggleShowStatus(id) {
+        const show = this.shows.find((item) => item.id === id);
+        if (!show) return;
+
+        if (typeof window.toggleAdvancedWatchedStatus === 'function') {
+            const handled = window.toggleAdvancedWatchedStatus(show);
+            if (!handled) show.toggleWatchedStatus();
+            return;
+        }
+
+        if (typeof window.toggleAdvancedReadStatus === 'function') {
+            const handled = window.toggleAdvancedReadStatus(show);
+            if (!handled) show.toggleWatchedStatus();
+            return;
+        }
+
+        show.toggleWatchedStatus();
+    }
 }
 
 // ============================================
-// CORE EVENTS
+// UI CLASS
 // ============================================
-form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    addBookToLibrary(getFormData());
-    form.reset();
-    toggleModal(false);
-    renderLibrary();
-});
+class WatchlistUI {
+    constructor(watchlist) {
+        this.watchlist = watchlist;
+        this.form = document.getElementById('showForm');
+        this.showsContainer = document.getElementById('shows');
+        this.addBtn = document.querySelector('.addBtn');
+        this.cancelBtn = document.querySelector('.cancelBtn');
+        this.modalOverlay = document.getElementById('modalOverlay');
+        this.modalContainer = document.getElementById('modalContainer');
+        this.formFields = {
+            title: document.getElementById('showName'),
+            seasons: document.getElementById('showSeasons'),
+            rating: document.getElementById('showRating'),
+            status: document.getElementById('showStatus'),
+            color: document.getElementById('showColor'),
+            description: document.getElementById('showDescription'),
+            image: document.getElementById('showImg')
+        };
 
-addBtn.addEventListener('click', () => {
-    form.reset();
-    toggleModal(true);
-});
-
-cancelBtn?.addEventListener('click', () => {
-    form.reset();
-    toggleModal(false);
-});
-
-showsContainer.addEventListener('click', (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-
-    const action = target.dataset.action;
-    const id = target.dataset.bookId;
-    if (!action || !id) return;
-
-    if (action === 'toggle') {
-        toggleBookReadStatus(id);
+        this.setupEvents();
     }
 
-    if (action === 'delete') {
-        removeBookFromLibrary(id);
+    setupEvents() {
+        this.form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            this.watchlist.addShow(this.getFormData());
+            this.form.reset();
+            this.toggleModal(false);
+            this.render();
+        });
+
+        this.addBtn.addEventListener('click', () => {
+            this.form.reset();
+            this.toggleModal(true);
+        });
+
+        this.cancelBtn?.addEventListener('click', () => {
+            this.form.reset();
+            this.toggleModal(false);
+        });
+
+        this.showsContainer.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) return;
+
+            const action = target.dataset.action;
+            const id = target.dataset.showId;
+            if (!action || !id) return;
+
+            if (action === 'toggle') this.watchlist.toggleShowStatus(id);
+            if (action === 'delete') this.watchlist.removeShow(id);
+
+            this.render();
+        });
     }
 
-    renderLibrary();
-});
+    toggleModal(show) {
+        this.modalOverlay.style.display = show ? 'block' : 'none';
+        this.modalContainer.style.display = show ? 'block' : 'none';
+    }
+
+    getWatchedLabel(show) {
+        if (typeof window.getAdvancedWatchedLabel === 'function') {
+            return window.getAdvancedWatchedLabel(show);
+        }
+        if (typeof window.getAdvancedReadLabel === 'function') {
+            return window.getAdvancedReadLabel(show);
+        }
+        return show.watched ? 'Watched' : 'Not watched yet';
+    }
+
+    getFormData() {
+        const advancedData =
+            typeof window.getAdvancedFormData === 'function'
+                ? window.getAdvancedFormData(this.formFields)
+                : {};
+
+        return {
+            title: this.formFields.title.value.trim(),
+            seasons: this.formFields.seasons.value,
+            rating: this.formFields.rating.value,
+            watched: this.formFields.status.value === 'watched',
+            advancedData
+        };
+    }
+
+    render() {
+        this.showsContainer.innerHTML = '';
+
+        this.watchlist.shows.forEach((show) => {
+            const card = document.createElement('div');
+
+            card.innerHTML = `
+                <div class="show" data-show-id="${show.id}">
+                    <div class="show-info">
+                        <h2 class="show-title">${show.title}</h2>
+                        <p class="show-seasons">Seasons: ${show.seasons}</p>
+                        <p class="show-rating">Rating: ${show.rating}</p>
+                        ${typeof window.renderAdvancedInfo === 'function' ? window.renderAdvancedInfo(show) : ''}
+                    </div>
+                    <div class="show-actions">
+                        <button class="toggleWatchedBtn" data-action="toggle" data-show-id="${show.id}">
+                            ${this.getWatchedLabel(show)}
+                        </button>
+                        <button class="deleteBtn" data-action="delete" data-show-id="${show.id}">Delete</button>
+                    </div>
+                </div>
+            `;
+
+            this.showsContainer.appendChild(card);
+
+            if (typeof window.applyAdvancedCardStyles === 'function') {
+                window.applyAdvancedCardStyles(card, show);
+            }
+        });
+    }
+}
 
 // ============================================
-// CORE SEED DATA
+// INITIALIZATION
 // ============================================
-addBookToLibrary({
+const watchlist = new Watchlist();
+const ui = new WatchlistUI(watchlist);
+
+watchlist.addShow({
     title: 'Breaking Bad',
     seasons: 5,
     rating: 9.5,
-    read: true,
+    watched: true,
     advancedData: {
         status: 'watched',
         color: '#10b981',
@@ -180,11 +208,11 @@ addBookToLibrary({
     }
 });
 
-addBookToLibrary({
+watchlist.addShow({
     title: 'Better Call Saul',
     seasons: 6,
     rating: 9.1,
-    read: false,
+    watched: false,
     advancedData: {
         status: 'watching',
         color: '#f97316',
@@ -193,11 +221,11 @@ addBookToLibrary({
     }
 });
 
-addBookToLibrary({
+watchlist.addShow({
     title: 'Brooklyn Nine-Nine',
     seasons: 8,
     rating: 8.4,
-    read: false,
+    watched: false,
     advancedData: {
         status: 'not watched yet',
         color: '#22d3ee',
@@ -206,4 +234,4 @@ addBookToLibrary({
     }
 });
 
-renderLibrary();
+ui.render();
