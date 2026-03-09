@@ -28,8 +28,6 @@ class Watchlist {
 
         if (typeof window.applyAdvancedDataToShow === 'function') {
             window.applyAdvancedDataToShow(show, advancedData);
-        } else if (typeof window.applyAdvancedDataToBook === 'function') {
-            window.applyAdvancedDataToBook(show, advancedData);
         }
 
         this.shows.push(show);
@@ -43,8 +41,6 @@ class Watchlist {
 
         if (typeof window.cleanupAdvancedShowData === 'function') {
             window.cleanupAdvancedShowData(removedShow);
-        } else if (typeof window.cleanupAdvancedBookData === 'function') {
-            window.cleanupAdvancedBookData(removedShow);
         }
     }
 
@@ -54,12 +50,6 @@ class Watchlist {
 
         if (typeof window.toggleAdvancedWatchedStatus === 'function') {
             const handled = window.toggleAdvancedWatchedStatus(show);
-            if (!handled) show.toggleWatchedStatus();
-            return;
-        }
-
-        if (typeof window.toggleAdvancedReadStatus === 'function') {
-            const handled = window.toggleAdvancedReadStatus(show);
             if (!handled) show.toggleWatchedStatus();
             return;
         }
@@ -135,9 +125,6 @@ class WatchlistUI {
     getWatchedLabel(show) {
         if (typeof window.getAdvancedWatchedLabel === 'function') {
             return window.getAdvancedWatchedLabel(show);
-        }
-        if (typeof window.getAdvancedReadLabel === 'function') {
-            return window.getAdvancedReadLabel(show);
         }
         return show.watched ? 'Watched' : 'Not watched yet';
     }
