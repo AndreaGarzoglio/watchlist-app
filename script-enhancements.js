@@ -23,42 +23,53 @@
         };
     };
 
-    window.applyAdvancedDataToBook = function (book, advancedData = {}) {
-        book.status = advancedData.status || 'not watched yet';
-        book.color = advancedData.color || DEFAULT_COLOR;
-        book.description = advancedData.description || '';
-        book.image = advancedData.image || null;
+    window.applyAdvancedDataToShow = function (show, advancedData = {}) {
+        show.status = advancedData.status || 'not watched yet';
+        show.color = advancedData.color || DEFAULT_COLOR;
+        show.description = advancedData.description || '';
+        show.image = advancedData.image || null;
+        show.watched = show.status === 'watched';
+        show.read = show.watched;
     };
 
-    window.cleanupAdvancedBookData = function (book) {
-        if (book?.image?.startsWith('blob:')) {
-            URL.revokeObjectURL(book.image);
+    window.applyAdvancedDataToBook = window.applyAdvancedDataToShow;
+
+    window.cleanupAdvancedShowData = function (show) {
+        if (show?.image?.startsWith('blob:')) {
+            URL.revokeObjectURL(show.image);
         }
     };
 
-    window.toggleAdvancedReadStatus = function (book) {
-        if (!book || !book.status) return false;
+    window.cleanupAdvancedBookData = window.cleanupAdvancedShowData;
 
-        if (book.status === 'not watched yet') {
-            book.status = 'watching';
-        } else if (book.status === 'watching') {
-            book.status = 'watched';
+    window.toggleAdvancedWatchedStatus = function (show) {
+        if (!show || !show.status) return false;
+
+        if (show.status === 'not watched yet') {
+            show.status = 'watching';
+        } else if (show.status === 'watching') {
+            show.status = 'watched';
         } else {
-            book.status = 'not watched yet';
+            show.status = 'not watched yet';
         }
 
-        book.read = book.status === 'watched';
+        show.watched = show.status === 'watched';
+        show.read = show.watched;
         return true;
     };
 
-    window.getAdvancedReadLabel = function (book) {
+    window.toggleAdvancedReadStatus = window.toggleAdvancedWatchedStatus;
+
+    window.getAdvancedWatchedLabel = function (show) {
         const labels = {
             'not watched yet': 'Not watched yet',
             watching: 'Watching',
             watched: 'Watched'
         };
-        return labels[book.status] || (book.read ? 'Read' : 'Not read');
+        return labels[show.status] || (show.watched ? 'Watched' : 'Not watched yet');
     };
+
+    window.getAdvancedReadLabel = window.getAdvancedWatchedLabel;
 
     window.renderAdvancedInfo = function (book) {
         return `<p class="show-description">${book.description || ''}</p>`;
