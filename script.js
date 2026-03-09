@@ -1,6 +1,8 @@
 // ============================================
 // SHOW CLASS
 // ============================================
+const DEFAULT_COLOR = '#a855f7';
+
 class Show {
     constructor(title, seasons, rating, image, status, color, description) {
         this.id = crypto.randomUUID();
@@ -9,15 +11,17 @@ class Show {
         this.rating = rating;
         this.image = image;
         this.status = status || 'not watched yet';
-        this.color = color || '#a855f7';
+        this.color = color || DEFAULT_COLOR;
         this.description = description || '';
     }
 
     formatStatus() {
-        if (!this.status) return 'Not watched yet';
-        if (this.status === 'watching') return 'Watching';
-        if (this.status === 'watched') return 'Watched';
-        return 'Not watched yet';
+        const labels = {
+            'not watched yet': 'Not watched yet',
+            watching: 'Watching',
+            watched: 'Watched'
+        };
+        return labels[this.status] || labels['not watched yet'];
     }
 
     nextStatus() {
@@ -106,6 +110,15 @@ class UI {
         this.showsContainer = document.getElementById("shows");
         this.addBtn = document.querySelector(".addBtn");
         this.cancelBtn = document.querySelector(".cancelBtn");
+        this.formFields = {
+            title: document.getElementById("showName"),
+            seasons: document.getElementById("showSeasons"),
+            rating: document.getElementById("showRating"),
+            image: document.getElementById("showImg"),
+            status: document.getElementById("showStatus"),
+            color: document.getElementById("showColor"),
+            description: document.getElementById("showDescription")
+        };
         this.setupEventListeners();
     }
 
@@ -117,13 +130,13 @@ class UI {
 
     getFormValues() {
         return {
-            title: document.getElementById("showName").value,
-            seasons: document.getElementById("showSeasons").value,
-            rating: document.getElementById("showRating").value,
-            imageFile: document.getElementById("showImg").files[0],
-            status: document.getElementById("showStatus").value,
-            color: document.getElementById("showColor").value || '#a855f7',
-            description: document.getElementById("showDescription").value
+            title: this.formFields.title.value,
+            seasons: this.formFields.seasons.value,
+            rating: this.formFields.rating.value,
+            imageFile: this.formFields.image.files[0],
+            status: this.formFields.status.value,
+            color: this.formFields.color.value || DEFAULT_COLOR,
+            description: this.formFields.description.value
         };
     }
 
@@ -161,12 +174,12 @@ class UI {
 
         this.watchlist.editingShowId = id;
 
-        document.getElementById("showName").value = show.title;
-        document.getElementById("showSeasons").value = show.seasons;
-        document.getElementById("showRating").value = show.rating;
-        document.getElementById("showStatus").value = show.status || 'not watched yet';
-        document.getElementById("showColor").value = show.color || '#a855f7';
-        document.getElementById("showDescription").value = show.description || '';
+        this.formFields.title.value = show.title;
+        this.formFields.seasons.value = show.seasons;
+        this.formFields.rating.value = show.rating;
+        this.formFields.status.value = show.status || 'not watched yet';
+        this.formFields.color.value = show.color || DEFAULT_COLOR;
+        this.formFields.description.value = show.description || '';
 
         this.toggleModal(true);
     }
@@ -197,25 +210,9 @@ class UI {
             `;
             this.showsContainer.appendChild(card);
 
-            const showCard = card.querySelector('.show');
-            const borderColor = show.color || '#a855f7';
-            showCard.style.borderColor = borderColor;
-            showCard.style.boxShadow = `0 8px 28px ${borderColor}66`;
-
-            const titleEl = card.querySelector('.show-title');
-            titleEl.style.color = borderColor;
-
-            const statusBtn = card.querySelector('.toggleWatchedBtn');
-            let statusColor;
-            if (show.status === 'watched') {
-                statusColor = '#10b981';
-            } else if (show.status === 'watching') {
-                statusColor = '#f59e0b';
-            } else {
-                statusColor = '#6b7280';
+            if (typeof window.applyShowVisualEnhancements === 'function') {
+                window.applyShowVisualEnhancements(card, show);
             }
-            statusBtn.style.background = `linear-gradient(140deg, ${statusColor}, ${statusColor}dd)`;
-            statusBtn.style.boxShadow = `0 8px 22px ${statusColor}44`;
         });
     }
 
