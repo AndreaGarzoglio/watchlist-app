@@ -16,8 +16,6 @@ function addShowToWatchlist({ title, seasons, rating, watched, advancedData }) {
 
     if (typeof window.applyAdvancedDataToShow === 'function') {
         window.applyAdvancedDataToShow(show, advancedData);
-    } else if (typeof window.applyAdvancedDataToBook === 'function') {
-        window.applyAdvancedDataToBook(show, advancedData);
     }
 
     myWatchlist.push(show);
@@ -31,8 +29,6 @@ function removeShowFromWatchlist(id) {
 
     if (typeof window.cleanupAdvancedShowData === 'function') {
         window.cleanupAdvancedShowData(removedShow);
-    } else if (typeof window.cleanupAdvancedBookData === 'function') {
-        window.cleanupAdvancedBookData(removedShow);
     }
 }
 
@@ -42,14 +38,6 @@ function toggleShowWatchedStatus(id) {
 
     if (typeof window.toggleAdvancedWatchedStatus === 'function') {
         const handled = window.toggleAdvancedWatchedStatus(show);
-        if (!handled) {
-            show.watched = !show.watched;
-        }
-        return;
-    }
-
-    if (typeof window.toggleAdvancedReadStatus === 'function') {
-        const handled = window.toggleAdvancedReadStatus(show);
         if (!handled) {
             show.watched = !show.watched;
         }
@@ -87,9 +75,6 @@ function toggleModal(show) {
 function getWatchedLabel(show) {
     if (typeof window.getAdvancedWatchedLabel === 'function') {
         return window.getAdvancedWatchedLabel(show);
-    }
-    if (typeof window.getAdvancedReadLabel === 'function') {
-        return window.getAdvancedReadLabel(show);
     }
     return show.watched ? 'Watched' : 'Not watched yet';
 }
