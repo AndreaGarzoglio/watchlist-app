@@ -86,6 +86,14 @@ class WatchlistUI {
     setupEvents() {
         this.form.addEventListener('submit', (event) => {
             event.preventDefault();
+
+            const error = this.validateForm();
+            if (error) {
+                alert(error);
+                return;
+            }
+
+
             this.watchlist.addShow(this.getFormData());
             this.form.reset();
             this.toggleModal(false);
@@ -120,6 +128,22 @@ class WatchlistUI {
     toggleModal(show) {
         this.modalOverlay.style.display = show ? 'block' : 'none';
         this.modalContainer.style.display = show ? 'block' : 'none';
+    }
+
+    validateForm() {
+        if (!this.formFields.title.value.trim()) {
+            return 'Please enter a show title';
+        }
+
+        if (!this.formFields.seasons.value || this.formFields.seasons.value <= 0) {
+            return 'Seasons must be a positive number';
+        }
+
+        if (!this.formFields.rating.value || this.formFields.rating.value < 0 || this.formFields.rating.value > 10) {
+            return 'Rating must be between 0 and 10';
+        }
+
+        return null;
     }
 
     getWatchedLabel(show) {
